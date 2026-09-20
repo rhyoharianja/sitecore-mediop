@@ -1,0 +1,69 @@
+<!--
+	WebP. Supported by every current browser and typically 25-35% smaller than an equivalent JPEG,
+	so this is the one worth enabling first.
+
+	Requires Mediop.NextGenFormats.config and the web.config handler change described there.
+	The z.0x prefix makes this file load after the format configs it patches.
+-->
+<configuration xmlns:patch="http://www.sitecore.net/xmlconfig/">
+	<sitecore>
+		<pipelines>
+			<mediopGetSupportedFormats>
+				<processor type="Mediop.NextGenFormats.Pipelines.CheckSupport, Mediop" desc="webp">
+					<Extension>webp</Extension>
+				</processor>
+			</mediopGetSupportedFormats>
+
+			<!-- Varies the rendering cache key by WebP support. Only does anything when the CDN config
+			     is on, since that is what bakes the extension into the markup. -->
+			<mvc.renderRendering>
+				<processor type="Mediop.NextGenFormats.Pipelines.GenerateCacheKey, Mediop"
+				           patch:after="processor[@type='Sitecore.Mvc.Pipelines.Response.RenderRendering.GenerateCacheKey, Sitecore.Mvc']" desc="webp">
+					<Extension>webp</Extension>
+				</processor>
+			</mvc.renderRendering>
+
+			<!-- re-optimizes .webp media uploaded as-is -->
+			<mediopOptimize>
+				<processor type="Mediop.Processors.Pipelines.MediopOptimize.ExtensionBasedOptimizer, Mediop" desc="webp">
+					<Extensions>webp</Extensions>
+					<Pipeline>mediopOptimizeWebP</Pipeline>
+				</processor>
+			</mediopOptimize>
+
+			<mediopOptimizeWebP>
+				<processor type="Mediop.Optimizers.Pipelines.MediopWebP.WebPOptimizer, Mediop">
+					<ExePath>/App_Data/Mediop Tools/libwebp/cwebp.exe</ExePath>
+					<AdditionalToolArguments>-q 80</AdditionalToolArguments>
+				</processor>
+			</mediopOptimizeWebP>
+
+			<!-- Transcode after the native optimizer has run. If the browser did not ask for WebP the
+			     processor is a no-op and the JPEG/PNG result is served instead. -->
+			<mediopOptimizeJpeg>
+				<processor type="Mediop.Optimizers.Pipelines.MediopWebP.WebPOptimizer, Mediop"
+				           patch:after="processor[@type='Mediop.Optimizers.Pipelines.MediopJpeg.MozJpegOptimizer, Mediop']">
+					<ExePath>/App_Data/Mediop Tools/libwebp/cwebp.exe</ExePath>
+					<AdditionalToolArguments>-preset photo -q 80</AdditionalToolArguments>
+				</processor>
+			</mediopOptimizeJpeg>
+
+			<mediopOptimizePng>
+				<processor type="Mediop.Optimizers.Pipelines.MediopWebP.WebPOptimizer, Mediop"
+				           patch:after="processor[@type='Mediop.Optimizers.Pipelines.MediopPng.PngOptimizer, Mediop']">
+					<ExePath>/App_Data/Mediop Tools/libwebp/cwebp.exe</ExePath>
+					<AdditionalToolArguments>-preset icon -lossless</AdditionalToolArguments>
+				</processor>
+			</mediopOptimizePng>
+
+			<!-- gif2webp keeps animation, but cannot resize - Sitecore has already done that. -->
+			<mediopOptimizeGif>
+				<processor type="Mediop.Optimizers.Pipelines.MediopWebP.WebPOptimizer, Mediop" patch:before="processor[1]">
+					<ExePath>/App_Data/Mediop Tools/libwebp/gif2webp.exe</ExePath>
+					<AdditionalToolArguments>-q 80 -lossy</AdditionalToolArguments>
+					<DisableResizing>true</DisableResizing>
+				</processor>
+			</mediopOptimizeGif>
+		</pipelines>
+	</sitecore>
+</configuration>

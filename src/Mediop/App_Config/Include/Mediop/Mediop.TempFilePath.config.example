@@ -1,0 +1,16 @@
+<!--
+	Moves the temp files the optimizers work in. Rename to .config to activate.
+
+	Worth setting when the system drive is short on space, or when the Windows temp folder is shared
+	with something that fills it - a folder that hits the 65535 file limit stops optimization dead.
+	The app pool identity needs write access to whatever is set here.
+-->
+<configuration xmlns:patch="http://www.sitecore.net/xmlconfig/">
+	<sitecore>
+		<settings>
+			<setting name="Mediop.TempFilePath">
+				<patch:attribute name="value">D:\Sitecore\temp\mediop</patch:attribute>
+			</setting>
+		</settings>
+	</sitecore>
+</configuration>

@@ -1,0 +1,45 @@
+<!--
+	AVIF. Smaller than WebP at the same quality, but encoding is an order of magnitude slower.
+
+	Enable it alongside WebP, not instead of it: browsers that support AVIF list it first in Accept,
+	older ones still get WebP. On content delivery, only run this with the async strategy - a
+	synchronous AVIF encode is far too slow to sit in a request.
+
+	Requires Mediop.NextGenFormats.config.
+-->
+<configuration xmlns:patch="http://www.sitecore.net/xmlconfig/">
+	<sitecore>
+		<pipelines>
+			<mediopGetSupportedFormats>
+				<processor type="Mediop.NextGenFormats.Pipelines.CheckSupport, Mediop" desc="avif">
+					<Extension>avif</Extension>
+				</processor>
+			</mediopGetSupportedFormats>
+
+			<mvc.renderRendering>
+				<processor type="Mediop.NextGenFormats.Pipelines.GenerateCacheKey, Mediop"
+				           patch:after="processor[@type='Sitecore.Mvc.Pipelines.Response.RenderRendering.GenerateCacheKey, Sitecore.Mvc']" desc="avif">
+					<Extension>avif</Extension>
+				</processor>
+			</mvc.renderRendering>
+
+			<!-- Runs before the WebP processor so AVIF wins when the browser accepts both.
+			     -s 6 is the speed/size compromise; lower is smaller and much slower. -->
+			<mediopOptimizeJpeg>
+				<processor type="Mediop.Optimizers.Pipelines.MediopAvif.AvifOptimizer, Mediop"
+				           patch:after="processor[@type='Mediop.Optimizers.Pipelines.MediopJpeg.MozJpegOptimizer, Mediop']">
+					<ExePath>/App_Data/Mediop Tools/avif/avifenc.exe</ExePath>
+					<AdditionalToolArguments>-s 6 -q 70</AdditionalToolArguments>
+				</processor>
+			</mediopOptimizeJpeg>
+
+			<mediopOptimizePng>
+				<processor type="Mediop.Optimizers.Pipelines.MediopAvif.AvifOptimizer, Mediop"
+				           patch:after="processor[@type='Mediop.Optimizers.Pipelines.MediopPng.PngOptimizer, Mediop']">
+					<ExePath>/App_Data/Mediop Tools/avif/avifenc.exe</ExePath>
+					<AdditionalToolArguments>-s 6 --lossless</AdditionalToolArguments>
+				</processor>
+			</mediopOptimizePng>
+		</pipelines>
+	</sitecore>
+</configuration>

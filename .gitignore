@@ -1,0 +1,11 @@
+# build output
+[Bb]in/
+[Oo]bj/
+artifacts/
+
+# third party optimizer binaries, fetched with build/Get-MediopTools.ps1
+tools/Mediop Tools/
+
+# visual studio
+.vs/
+*.user

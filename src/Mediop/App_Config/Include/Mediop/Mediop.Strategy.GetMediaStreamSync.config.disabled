@@ -1,0 +1,22 @@
+<!--
+	STRATEGY: synchronous, inside getMediaStream.
+
+	Every response is optimized, including the very first one, because the visitor waits for the
+	encoder to finish. Use this only when a CDN pulls each image from the origin exactly once, so
+	that one slow request per image is a fair trade. On a directly served site it makes the first
+	visitor to each page pay for every image on it.
+
+	Before enabling this file:
+	  1. disable Mediop.Strategy.MediaCacheAsync.config
+	  2. set SynchronouslyOptimizeSvgs to true in Mediop.Svg.config, otherwise SVGs are never
+	     optimized - the ignorer aborts getMediaStream and nothing runs after it
+-->
+<configuration xmlns:patch="http://www.sitecore.net/xmlconfig/">
+	<sitecore>
+		<pipelines>
+			<getMediaStream>
+				<processor type="Mediop.Invokers.GetMediaStreamSync.OptimizeImage, Mediop" />
+			</getMediaStream>
+		</pipelines>
+	</sitecore>
+</configuration>

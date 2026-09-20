@@ -1,0 +1,27 @@
+<!--
+	Swaps the JPEG optimizer from mozjpeg to jpegoptim. Rename to .config to activate.
+
+	Why you might want this: jpegoptim is lighter and faster, and with -m90 it re-encodes at a
+	quality ceiling rather than a fixed quality, so images that were already well compressed are
+	left closer to how they were. mozjpeg still wins on raw file size for most content, which is
+	why it is the default.
+
+	This file patches the processor that Mediop.Jpeg.config defines, so it must load after it.
+	The name takes care of that: Windows enumerates includes case-insensitively, and
+	"Mediop.Jpeg.config" sorts before "Mediop.Jpeg.JpegOptim.config".
+
+	Nothing else needs to change - jpegoptim.exe is already fetched by Get-MediopTools.ps1.
+-->
+<configuration xmlns:patch="http://www.sitecore.net/xmlconfig/">
+	<sitecore>
+		<pipelines>
+			<mediopOptimizeJpeg>
+				<processor type="Mediop.Optimizers.Pipelines.MediopJpeg.MozJpegOptimizer, Mediop">
+					<patch:attribute name="type">Mediop.Optimizers.Pipelines.MediopJpeg.JpegOptimOptimizer, Mediop</patch:attribute>
+					<ExePath>/App_Data/Mediop Tools/jpegoptim-windows/jpegoptim.exe</ExePath>
+					<AdditionalToolArguments>--strip-all --all-progressive -m90</AdditionalToolArguments>
+				</processor>
+			</mediopOptimizeJpeg>
+		</pipelines>
+	</sitecore>
+</configuration>

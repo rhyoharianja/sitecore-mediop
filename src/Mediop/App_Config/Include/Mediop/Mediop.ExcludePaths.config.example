@@ -1,0 +1,24 @@
+<!--
+	Excludes media paths from optimization. Rename to .config to activate.
+
+	Use it for source libraries the editors download from rather than display, for SVGs whose
+	metadata is load bearing, or for anything already optimized upstream.
+
+	Paths are MEDIA paths, so drop the /sitecore/media library prefix. Wildcards are supported.
+-->
+<configuration xmlns:patch="http://www.sitecore.net/xmlconfig/">
+	<sitecore>
+		<pipelines>
+			<mediopOptimize>
+				<!-- keep the patch:before: an exclusion that runs after an optimizer excludes nothing -->
+				<processor type="Mediop.Processors.Pipelines.MediopOptimize.PathExclusion, Mediop" patch:before="*[1]">
+					<paths hint="list:AddExclusion">
+						<path>/Files/Print Masters</path>
+						<path>*/do-not-optimize/*</path>
+						<path>*/logo-*.svg</path>
+					</paths>
+				</processor>
+			</mediopOptimize>
+		</pipelines>
+	</sitecore>
+</configuration>

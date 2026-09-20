@@ -1,0 +1,30 @@
+<!--
+	CDN support for next generation formats.
+
+	Without a CDN the Accept header alone picks the format and nothing else is needed. With one in
+	front, the CDN caches by URL, so two browsers with different format support would share a cache
+	entry and one of them would get an image it cannot decode.
+
+	This file fixes that by appending extension=webp,avif to generated media URLs, which gives each
+	capability set its own cache key, and by varying the HTML rendering cache the same way.
+
+	Some CDNs (Azure Front Door among them) normalize or strip Accept. Configure a rule there to copy
+	the original header into a custom one, then name it in the setting below.
+-->
+<configuration xmlns:patch="http://www.sitecore.net/xmlconfig/">
+	<sitecore>
+		<settings>
+			<setting name="Mediop.CDN.Enabled">
+				<patch:attribute name="value">true</patch:attribute>
+			</setting>
+			<!--
+			<setting name="Mediop.CDN.CustomAcceptHeaderName" value="X-Original-Accept" />
+			-->
+		</settings>
+
+		<mediaLibrary>
+			<mediaProvider type="Mediop.NextGenFormats.MediaProvider, Mediop"
+			               patch:instead="mediaProvider[@type='Sitecore.Resources.Media.MediaProvider, Sitecore.Kernel']" />
+		</mediaLibrary>
+	</sitecore>
+</configuration>
