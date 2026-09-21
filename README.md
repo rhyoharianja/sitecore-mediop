@@ -13,6 +13,9 @@ cache, with no changes to front end code or content items.
 
 Built for **Sitecore XM/XP 10.4.1**, .NET Framework 4.8. Assembly and namespace are both `Mediop`.
 
+Built on the architecture of [Dianoga](https://github.com/kamsar/Dianoga) by Kam Figy — see
+[Credits](#credits) for what came from it and what differs.
+
 Licensed under [MIT](LICENSE). Third party components and their licenses: [NOTICE.md](NOTICE.md).
 The reasoning behind the technical choices: [Design notes](#design-notes).
 
@@ -392,3 +395,34 @@ default.
 
 **net48 only.** Sitecore 10.4 runs on .NET Framework 4.8; multi-targeting would add build surface
 that nothing uses.
+
+---
+
+## Credits
+
+Mediop is built on the architecture of **[Dianoga](https://github.com/kamsar/Dianoga)** by
+[Kam Figy](https://github.com/kamsar), published under the MIT license. Dianoga has been the
+reference implementation for Sitecore media optimization for years, and this project would not
+exist in its current shape without it.
+
+What came from Dianoga:
+
+- the pipeline design — an extension based dispatcher feeding per format optimizer pipelines
+- the optimizer base classes, including the rule that an optimizer owns and disposes its input
+  stream, and that a result which is not smaller is discarded
+- the two invocation strategies: optimizing asynchronously on the way into the media cache, or
+  synchronously inside `getMediaStream`
+- the `Accept` header negotiation for next generation formats
+- the configuration layout, with one file per format and `.disabled` files as opt-in switches
+
+What is different here: the code was written against Sitecore 10.4.1 rather than carried over,
+the async queue is bounded and has no TPL Dataflow dependency, CD and CM are tuned separately
+through `role:require`, and a few rough edges are handled differently — see
+[Design notes](#design-notes) for the reasoning behind each.
+
+The optimizer executables are third party builds redistributed by the Dianoga project, each under
+its own license. See [NOTICE.md](NOTICE.md) for the full list.
+
+If you are choosing between the two: Dianoga is the mature, battle tested option with years of
+production use across many installations, and it is the safer default. Mediop is worth a look if
+you want explicit limits on delivery side load, per role tuning, or a smaller codebase to audit.
