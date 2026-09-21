@@ -277,10 +277,33 @@ GIFs go through gifsicle, which is lossless and keeps animation intact. `Get-Med
 it from <https://eternallybored.org/misc/gifsicle/> — it ships as a zip rather than loose files, so
 the script pulls `gifsicle.exe` and its license out of the archive.
 
-That download is the one step that can fail without stopping the rest: if the site is unreachable or
-the release layout changes, the script warns and carries on, and every other optimizer still works.
-In that case either drop `gifsicle.exe` into `App_Data/Mediop Tools/gifsicle/` by hand, or delete
-`Mediop.Gif.config` if the site serves no GIFs, so it does not log an error per GIF.
+That download is the one step allowed to fail without stopping the rest: the script warns, carries
+on, and every other optimizer still works.
+
+The usual reason it fails on a corporate network is **TLS trust, not an outage**. The host serves a
+Let's Encrypt certificate chaining to ISRG Root X2, and that root is missing on Windows machines
+where automatic root certificate updates are disabled by group policy — a common hardening setting.
+An inspecting proxy can break the chain the same way. The symptom is:
+
+```
+Could not fetch gifsicle: The underlying connection was closed:
+Could not establish trust relationship for the SSL/TLS secure channel.
+```
+
+Three ways forward:
+
+```powershell
+# 1. mirror the zip somewhere the machine does trust
+.\build\Get-MediopTools.ps1 -GifsicleUrl "https://artifacts.internal/mirror/gifsicle-1.95-win64.zip"
+
+# 2. skip it entirely, for a site with no GIFs (then delete Mediop.Gif.config)
+.\build\Get-MediopTools.ps1 -SkipGifsicle
+```
+
+3. Download it by hand from <https://eternallybored.org/misc/gifsicle/> and put `gifsicle.exe` in
+   `tools/Mediop Tools/gifsicle/`. Verify it first — expected SHA-256 for the 1.95 win64 build is
+   `6F60CC7F696AB4B861BF9E6FB5B4FD940B3CB6B9731E2EF04708334AF95A7DE4`. The script checks this hash
+   on every download and warns on a mismatch.
 
 With WebP enabled, animated GIFs can also be converted to animated WebP through `gif2webp`.
 

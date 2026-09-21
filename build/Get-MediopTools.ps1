@@ -13,12 +13,28 @@
 .PARAMETER Force
 	Re-download files that already exist.
 
+.PARAMETER GifsicleUrl
+	Where to fetch the gifsicle zip from. Point this at an internal mirror when the public site is
+	unreachable, which on a corporate network is usually a TLS trust problem rather than an outage.
+
+.PARAMETER SkipGifsicle
+	Do not fetch gifsicle at all. Use this when the site serves no GIFs; also delete
+	Mediop.Gif.config so it does not log an error per GIF.
+
 .EXAMPLE
 	.\Get-MediopTools.ps1
+
+.EXAMPLE
+	.\Get-MediopTools.ps1 -GifsicleUrl "https://artifacts.internal/mirror/gifsicle-1.95-win64.zip"
+
+.EXAMPLE
+	.\Get-MediopTools.ps1 -SkipGifsicle
 #>
 [CmdletBinding()]
 param(
-	[switch] $Force
+	[switch] $Force,
+	[string] $GifsicleUrl = 'https://eternallybored.org/misc/gifsicle/releases/gifsicle-1.95-win64.zip',
+	[switch] $SkipGifsicle
 )
 
 $ErrorActionPreference = 'Stop'
@@ -81,15 +97,20 @@ foreach ($file in $files) {
 $gifsicleDir = Join-Path $targetRoot 'gifsicle'
 $gifsicleExe = Join-Path $gifsicleDir 'gifsicle.exe'
 
-if ((Test-Path $gifsicleExe) -and -not $Force) {
+# SHA-256 of gifsicle.exe from the 1.95 win64 release, so a mirrored or hand-placed copy can be
+# checked. A mismatch is reported but not treated as fatal - a different release is a fair reason.
+$gifsicleExeSha256 = '6F60CC7F696AB4B861BF9E6FB5B4FD940B3CB6B9731E2EF04708334AF95A7DE4'
+
+if ($SkipGifsicle) {
+	Write-Host 'Skipping gifsicle (-SkipGifsicle). Delete Mediop.Gif.config if the site serves no GIFs.'
+} elseif ((Test-Path $gifsicleExe) -and -not $Force) {
 	$skipped++
 } else {
-	$gifsicleUrl = 'https://eternallybored.org/misc/gifsicle/releases/gifsicle-1.95-win64.zip'
 	$zipPath = Join-Path $env:TEMP "gifsicle-$([guid]::NewGuid()).zip"
 
 	try {
 		Write-Host 'Downloading gifsicle/gifsicle.exe'
-		Invoke-WebRequest -Uri $gifsicleUrl -OutFile $zipPath -UseBasicParsing
+		Invoke-WebRequest -Uri $GifsicleUrl -OutFile $zipPath -UseBasicParsing
 
 		if (-not (Test-Path $gifsicleDir)) {
 			New-Item -ItemType Directory -Path $gifsicleDir -Force | Out-Null
@@ -115,12 +136,27 @@ if ((Test-Path $gifsicleExe) -and -not $Force) {
 			$zip.Dispose()
 		}
 
+		$actualSha = (Get-FileHash $gifsicleExe -Algorithm SHA256).Hash
+		if ($actualSha -ne $gifsicleExeSha256) {
+			Write-Warning "gifsicle.exe SHA-256 is $actualSha, expected $gifsicleExeSha256."
+			Write-Warning 'That is fine if you deliberately mirrored a different release; investigate otherwise.'
+		}
+
 		$downloaded++
 	} catch {
 		# not fatal: every other optimizer still works, only GIF support is missing
 		Write-Warning "Could not fetch gifsicle: $($_.Exception.Message)"
-		Write-Warning "Download it manually from https://eternallybored.org/misc/gifsicle/ into $gifsicleDir,"
-		Write-Warning 'or delete Mediop.Gif.config so it does not log an error per GIF.'
+		Write-Warning ''
+		Write-Warning 'On a corporate network this is usually TLS trust, not an outage. The host uses a'
+		Write-Warning 'Lets Encrypt certificate chaining to ISRG Root X2, which is missing on Windows'
+		Write-Warning 'machines where automatic root certificate updates are disabled by policy, and an'
+		Write-Warning 'inspecting proxy can break the chain too. Three ways forward:'
+		Write-Warning ''
+		Write-Warning '  1. Mirror the zip internally and rerun with -GifsicleUrl <url>'
+		Write-Warning "  2. Download it by hand from https://eternallybored.org/misc/gifsicle/ and put"
+		Write-Warning "     gifsicle.exe in $gifsicleDir"
+		Write-Warning "     Expected SHA-256: $gifsicleExeSha256"
+		Write-Warning '  3. Rerun with -SkipGifsicle and delete Mediop.Gif.config if the site has no GIFs'
 	} finally {
 		if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
 	}
